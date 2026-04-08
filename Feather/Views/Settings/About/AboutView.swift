@@ -13,20 +13,30 @@ extension AboutView {
 
 // MARK: - View
 struct AboutView: View {
-    @EnvironmentObject var themeManager: AppWideThemeManager
+	@EnvironmentObject var themeManager: AppWideThemeManager
 	typealias CreditsDataHandler = Result<[CreditsModel], Error>
 	private let _dataService = NBFetchService()
-	@AppStorage("Feather.showHeaderViews") private var showHeaderViews = true
-	
+
+	@AppStorage("Feather.showHeaderViews") private var showHeaderViews = false
+
+	private let showAboutSection = false
+	private let showCreditsSection = false
+	private let showSponsorsSection = false
+	private let showGithubLinks = false
+	private let showDonationText = false
+	private let showInvisibleButton = true
+	private let showAppIcon = true
+	private let showAppName = true
+	private let showVersion = true
+
 	@State private var _credits: [CreditsModel] = []
 	@State private var _donators: [CreditsModel] = []
-	@State var isLoading = true
+	@State private var isLoading = true
 	@State private var _tapCount = 0
-	
+
 	private let _creditsUrl = "https://raw.githubusercontent.com/khcrysalis/project-credits/refs/heads/main/feather/creditsv2.json"
 	private let _donatorsUrl = "https://raw.githubusercontent.com/khcrysalis/project-credits/refs/heads/main/sponsors/credits.json"
-	
-	// MARK: Body
+
 	var body: some View {
 		NBList(.localized("About")) {
 			if showHeaderViews {
@@ -39,79 +49,122 @@ struct AboutView: View {
 			}
 
 			if !isLoading {
-				Section {
-					VStack {
-						Image(uiImage: AppIconView.altImage(UIApplication.shared.alternateIconName))
-							.appIconStyle(size: 72)
-							.onTapGesture {
-								_tapCount += 1
-								if _tapCount == 7 {
-									ToastManager.shared.show("🎉 You found an easy egg!", type: .success)
-									HapticsManager.shared.success()
-									_tapCount = 0
-								} else {
-									HapticsManager.shared.softImpact()
-								}
+				if showAboutSection {
+					Section {
+						VStack(spacing: 8) {
+							if showAppIcon {
+								Image(uiImage: AppIconView.altImage(UIApplication.shared.alternateIconName))
+									.appIconStyle(size: 72)
+									.onTapGesture {
+										_tapCount += 1
+										if _tapCount == 7 {
+											ToastManager.shared.show("🎉 You found an easy egg!", type: .success)
+											HapticsManager.shared.success()
+											_tapCount = 0
+										} else {
+											HapticsManager.shared.softImpact()
+										}
+									}
 							}
-						
-						Text(Bundle.main.exec)
-							.font(.largeTitle)
-							.bold()
-							.foregroundStyle(themeManager.accentColor)
-						
-						HStack(spacing: 4) {
-							Text(.localized("Version"))
-							Text(Bundle.main.version)
+
+							if showAppName {
+								Text(Bundle.main.exec)
+									.font(.largeTitle)
+									.bold()
+									.foregroundStyle(themeManager.accentColor)
+							}
+
+							if showVersion {
+								HStack(spacing: 4) {
+									Text(.localized("Version"))
+									Text(Bundle.main.version)
+								}
+								.font(.footnote)
+								.themedText(.secondary)
+							}
 						}
-						.font(.footnote)
-						.themedText(.secondary)
+						.frame(maxWidth: .infinity)
 					}
-				}
-				.frame(maxWidth: .infinity)
-				.listRowBackground(EmptyView())
-				
-				NBSection(.localized("Credits")) {
-					ForEach(_credits, id: \.github) { credit in
-						_credit(name: credit.name, desc: credit.desc, github: credit.github)
-					}
-					.transition(AnyTransition.slide)
-				}
-				
-				NBSection(.localized("Sponsors")) {
-					Text(try! AttributedString(markdown: _donators.map {
-						"[\($0.name ?? $0.github)](https://github.com/\($0.github))"
-					}.joined(separator: ", ")))
-					.transition(AnyTransition.slide)
-					
-					Text(.localized("💜 This couldn't of been done without my sponsors!"))
-						.themedText(.secondary)
-						.padding(.vertical, 2)
+					.listRowBackground(EmptyView())
 				}
 
-				Section {
-					Color.clear
-						.frame(height: 50)
-						.contentShape(Rectangle())
-						.onTapGesture {
-							ToastManager.shared.show("👻 You found the invisible button!", type: .success)
-							HapticsManager.shared.success()
+				if showCreditsSection {
+					NBSection(.localized("Credits")) {
+						ForEach(_credits, id: \.github) { credit in
+							if showGithubLinks {
+								_credit(name: credit.name, desc: credit.desc, github: credit.github)
+							} else {
+								HStack {
+									FRIconCellView(
+										title: credit.name ?? credit.github,
+										subtitle: credit.desc ?? "",
+										iconUrl: URL(string: "https://github.com/\(credit.github).png")!,
+										size: 45,
+										isCircle: true
+									)
+								}
+							}
 						}
+						.transition(.slide)
+					}
 				}
-				.listRowBackground(EmptyView())
+
+				if showSponsorsSection {
+					NBSection(.localized("Sponsors")) {
+						if showGithubLinks {
+							Text(
+								try! AttributedString(
+									markdown: _donators.map {
+										"[\($0.name ?? $0.github)](https://github.com/\($0.github))"
+									}.joined(separator: ", ")
+								)
+							)
+							.transition(.slide)
+						} else {
+							Text(_donators.map { $0.name ?? $0.github }.joined(separator: ", "))
+								.transition(.slide)
+						}
+
+						if showDonationText {
+							Text(.localized("💜 This couldn't of been done without my sponsors!"))
+								.themedText(.secondary)
+								.padding(.vertical, 2)
+						}
+					}
+				}
+
+				if showInvisibleButton {
+					Section {
+						Color.clear
+							.frame(height: 50)
+							.contentShape(Rectangle())
+							.onTapGesture {
+								ToastManager.shared.show("👻 You found the invisible button!", type: .success)
+								HapticsManager.shared.success()
+							}
+					}
+					.listRowBackground(EmptyView())
+				}
 			}
 		}
-        .globalTheme()
+		.globalTheme()
 		.animation(.default, value: isLoading)
 		.task {
-			await _fetchAllData()
+			if showCreditsSection || showSponsorsSection {
+				await _fetchAllData()
+			} else {
+				await MainActor.run {
+					isLoading = false
+				}
+			}
 		}
 	}
-	
+
 	private func _fetchAllData() async {
 		await withTaskGroup(of: (String, CreditsDataHandler).self) { group in
-			group.addTask { return await _fetchCredits(self._creditsUrl, using: _dataService) }
-			group.addTask { return await _fetchCredits(self._donatorsUrl, using: _dataService) }
-			
+			group.addTask { await _fetchCredits(self._creditsUrl, using: _dataService) }
+			group.addTask { await _fetchCredits(self._donatorsUrl, using: _dataService) }
+
 			for await (type, result) in group {
 				await MainActor.run {
 					switch result {
@@ -121,22 +174,21 @@ struct AboutView: View {
 						} else {
 							self._donators = data
 						}
-					case .failure(_): break
+					case .failure:
+						break
 					}
 				}
 			}
 		}
-		
+
 		await MainActor.run {
 			isLoading = false
 		}
 	}
-	
+
 	private func _fetchCredits(_ urlString: String, using service: NBFetchService) async -> (String, CreditsDataHandler) {
-		let type = urlString == _creditsUrl 
-		? "credits"
-		: "donators"
-		
+		let type = urlString == _creditsUrl ? "credits" : "donators"
+
 		return await withCheckedContinuation { continuation in
 			service.fetch(from: urlString) { (result: CreditsDataHandler) in
 				continuation.resume(returning: (type, result))
@@ -164,7 +216,7 @@ extension AboutView {
 					size: 45,
 					isCircle: true
 				)
-				
+
 				Image(systemName: "arrow.up.right")
 					.foregroundColor(.secondary.opacity(0.65))
 			}
