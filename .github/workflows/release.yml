@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: macos-14
@@ -21,6 +18,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Select Latest Xcode
         run: |
@@ -49,18 +47,34 @@ jobs:
           VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Payload/*.app/Info.plist)
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Portal v${{ steps.get_version.outputs.VERSION }}
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          body: |
-            Latest stable release to download
-
-            Full Changelog: https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.VERSION }}
-          files: |
-            upload/*ipa
-          fail_on_unmatched_files: true
-          draft: true
+      - name: Create or Update Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          set -euo pipefail
+
+          TAG="v${VERSION}"
+          TITLE="Portal v${VERSION}"
+          NOTES_FILE="$(mktemp)"
+
+          cat > "$NOTES_FILE" <<EOF
+          Latest stable release to download
+
+          Full Changelog: https://github.com/${{ github.repository }}/commits/${TAG}
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, updating it..."
+            gh release edit "$TAG" \
+              --title "$TITLE" \
+              --notes-file "$NOTES_FILE"
+
+            gh release upload "$TAG" upload/*ipa --clobber
+          else
+            echo "Release $TAG does not exist, creating it..."
+            gh release create "$TAG" upload/*ipa \
+              --title "$TITLE" \
+              --notes-file "$NOTES_FILE" \
+              --draft
+          fi
