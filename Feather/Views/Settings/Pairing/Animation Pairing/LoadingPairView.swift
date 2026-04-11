@@ -20,6 +20,7 @@ struct LoadingPairView: View {
     let isHost: Bool
     let pairedDeviceName: String?
     let transferStartTime: Date?
+    var transferSpeed: Double = 0
 
     // MARK: - State
 
@@ -29,6 +30,7 @@ struct LoadingPairView: View {
     /// Smoothed ETA in seconds, updated once per second using an exponential
     /// moving average (α = 0.25) to avoid jumpy estimates early in the transfer.
     @State private var smoothedETASeconds: Double = 0
+    @State private var currentSpeed: Double = 0
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     // MARK: - Body
@@ -77,6 +79,7 @@ struct LoadingPairView: View {
                 elapsedSeconds = max(0, Int(Date().timeIntervalSince(start)))
             }
             updateSmoothedETA()
+            currentSpeed = transferSpeed
         }
     }
 
@@ -126,6 +129,7 @@ struct LoadingPairView: View {
 
             // Center icon
             Image(systemName: isHost ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                .pulseEffect()
                 .font(.system(size: 48))
                 .foregroundStyle(
                     LinearGradient(
@@ -205,6 +209,15 @@ struct LoadingPairView: View {
                 )
             }
 
+            // Transfer Speed
+            if currentSpeed > 0 {
+                infoRow(
+                    icon: "bolt.fill",
+                    label: .localized("Transfer Speed"),
+                    value: formatSpeed(currentSpeed)
+                )
+            }
+
             // Current operation detail
             infoRow(
                 icon: currentPhaseIcon,
@@ -220,6 +233,7 @@ struct LoadingPairView: View {
     private func infoRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
+                .pulseEffect()
                 .font(.footnote)
                 .themedText(.secondary)
                 .frame(width: 20)
@@ -344,6 +358,13 @@ struct LoadingPairView: View {
             // Exponential moving average (α = 0.25) for stability
             smoothedETASeconds = 0.25 * rawRemaining + 0.75 * smoothedETASeconds
         }
+    }
+
+    private func formatSpeed(_ bytesPerSecond: Double) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useAll]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytesPerSecond)) + "/s"
     }
 
     private func formatDuration(_ seconds: Int) -> String {

@@ -718,11 +718,6 @@ struct ColorCustomizationView: View {
                         .foregroundStyle(themeManager.sectionHeaderTheme.iconColor)
                 }
             }
-            Divider().background(themeManager.sectionHeaderTheme.dividerColor)
-            NavigationLink(destination: TopViewAppearance()) {
-                Label("Top View", systemImage: "uiwindow.split.2x1")
-                    .foregroundStyle(themeManager.sectionHeaderTheme.iconColor)
-            }
         }
         .padding(12)
         .background(themeManager.sectionHeaderTheme.background)
@@ -1455,13 +1450,16 @@ struct ThemeLibraryView: View {
 
 private struct AppWideColorPickerSheet: View {
     @EnvironmentObject var themeManager: AppWideThemeManager
+    @EnvironmentObject var styleManager: SectionStyleManager
     @Environment(\.dismiss) var dismiss
     @State private var draft: AppWideColors
     @State private var initialSectionHeaderTheme: SectionHeaderTheme
+    @State private var initialSectionStyle: SectionStyle
 
     init() {
         _draft = State(initialValue: ThemeManager.shared.resolvedColors)
         _initialSectionHeaderTheme = State(initialValue: ThemeManager.shared.sectionHeaderTheme)
+        _initialSectionStyle = State(initialValue: SectionStyleManager.shared.currentStyle)
     }
 
     var body: some View {
@@ -1498,6 +1496,17 @@ private struct AppWideColorPickerSheet: View {
 
                 Section("SURFACE STATES") {
                     ColorPickerRow(label: "Cell Highlight",     color: $draft.cellHighlight)
+                }
+
+                Section {
+                    Toggle("Replace Section Styles", isOn: Binding(
+                        get: { styleManager.isReplacingSectionStyles },
+                        set: { styleManager.setReplaceSectionStyles($0) }
+                    ))
+                } header: {
+                    Text("Sections")
+                } footer: {
+                    Text("Fully replaces default SwiftUI section visuals with app-wide themed section styling.")
                 }
 
                 Section("PREVIEW") {
@@ -1595,6 +1604,7 @@ private struct AppWideColorPickerSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
                         themeManager.sectionHeaderTheme = initialSectionHeaderTheme
+                        styleManager.setStyle(initialSectionStyle)
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")

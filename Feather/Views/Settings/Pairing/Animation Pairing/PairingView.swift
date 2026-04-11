@@ -91,7 +91,8 @@ struct PairingView: View {
                 transferPhase: viewModel.transferPhase,
                 isHost: viewModel.isHost,
                 pairedDeviceName: viewModel.pairedDeviceName,
-                transferStartTime: viewModel.transferStartTime
+                transferStartTime: viewModel.transferStartTime,
+                transferSpeed: 0 // Animation pairing uses a different service
             )
             .preferredColorScheme(.dark)
         }
@@ -214,6 +215,7 @@ struct PairingView: View {
             if viewModel.status == .idle || viewModel.status == .waiting || viewModel.status == .generating {
                 Button(action: { viewModel.showScanSheet = true }) {
                     Label(.localized("Scan Pairing Code"), systemImage: "camera.viewfinder")
+                        .pulseEffect()
                         .font(.headline)
                         .foregroundStyle(Color(hex: themeManager.resolvedColors.buttonText))
                         .frame(maxWidth: .infinity, minHeight: 50)
@@ -223,6 +225,7 @@ struct PairingView: View {
 
                 Button(action: { showDemo = true }) {
                     Label(.localized("See Demo"), systemImage: "play.circle")
+                        .pulseEffect()
                         .font(.subheadline)
                         .themedText(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 42)

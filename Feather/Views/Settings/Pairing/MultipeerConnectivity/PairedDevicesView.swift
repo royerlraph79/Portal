@@ -11,12 +11,15 @@ struct PairedDevicesView: View {
     // MARK: - Body
 
     var body: some View {
-        Group {
-            if records.isEmpty {
-                emptyState
-            } else {
-                List {
-                    ForEach(records) { record in
+        ZStack {
+            themeManager.appBackgroundColor.ignoresSafeArea()
+
+            Group {
+                if records.isEmpty {
+                    emptyState
+                } else {
+                    List {
+                        ForEach(records) { record in
                         deviceRow(record)
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -41,8 +44,10 @@ struct PairedDevicesView: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
                 }
-                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle(.localized("Paired Devices"))
@@ -122,10 +127,11 @@ struct PairedDevicesView: View {
                          ? .localized("Unknown Device")
                          : record.deviceName)
                         .font(.headline)
+                        .foregroundStyle(themeManager.primaryTextColor)
 
                     Text(record.formattedDate)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.secondaryTextColor)
                 }
 
                 Spacer()
@@ -137,10 +143,10 @@ struct PairedDevicesView: View {
                           ? "chevron.up"
                           : "chevron.down")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.secondaryTextColor)
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 10)
 
             // Expandable detail section
             if selectedRecord?.id == record.id {
@@ -151,6 +157,7 @@ struct PairedDevicesView: View {
                     ))
             }
         }
+        .listRowBackground(themeManager.cardBackgroundColor)
     }
 
     // MARK: - Device Icon
@@ -192,13 +199,14 @@ struct PairedDevicesView: View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
                 .padding(.vertical, 10)
+                .opacity(0.3)
 
             // Section title
-            Text(.localized("Data Transferred"))
+            Text(.localized("Full Mirror Data"))
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.accentColor)
                 .textCase(.uppercase)
-                .padding(.bottom, 10)
+                .padding(.bottom, 12)
 
             // Stat grid (2 columns)
             let stats = statsForRecord(record)
@@ -207,8 +215,15 @@ struct PairedDevicesView: View {
                     statCard(stat)
                 }
             }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(.localized("This transfer included a complete mirror of this device's environment, including all configuration and application data."))
+                    .font(.caption2)
+                    .foregroundStyle(themeManager.secondaryTextColor)
+                    .padding(.top, 12)
+            }
         }
-        .padding(.bottom, 6)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Stat Card
@@ -230,17 +245,21 @@ struct PairedDevicesView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(stat.value)
                     .font(.subheadline.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(themeManager.primaryTextColor)
                 Text(stat.label)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.secondaryTextColor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(themeManager.cardBackgroundColor.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(themeManager.secondaryTextColor.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private func statsForRecord(_ record: PairRecord) -> [StatItem] {
@@ -305,14 +324,5 @@ struct PairedDevicesView: View {
         }
         return items
     }
-}
 
-// MARK: - Preview
-
-#if DEBUG
-#Preview {
-    NavigationStack {
-        PairedDevicesView()
-    }
 }
-#endif

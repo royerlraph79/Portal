@@ -35,8 +35,24 @@ extension SectionHeaderTheme {
         SectionHeaderTheme(
             background: Color.clear,
             textColor: Color(hex: colors.headerText),
-            iconColor: Color(hex: colors.iconTint),
+            iconColor: Color(hex: colors.accent),
             dividerColor: Color(hex: colors.separator)
         )
+    }
+
+    func resolvedTextColor(style: SectionStyle, defaultColor: Color) -> Color {
+        style == .colorMatch ? textColor : defaultColor
+    }
+
+    func resolvedIconColor(style: SectionStyle, defaultColor: Color) -> Color {
+        style == .colorMatch ? iconColor : defaultColor
+    }
+
+    func resolvedBackgroundColor(style: SectionStyle) -> Color {
+        style == .colorMatch ? background : .clear
+    }
+
+    func resolvedDividerColor(style: SectionStyle, defaultColor: Color) -> Color {
+        style == .colorMatch ? dividerColor : defaultColor
     }
 }

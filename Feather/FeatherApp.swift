@@ -42,6 +42,12 @@ struct FeatherApp: App {
     @State private var _isImportingIPA = false
     @State private var _importErrorMessage: String?
     @State private var _showImportError = false
+    
+    init() {
+        if #available(iOS 16.2, *) {
+            UserDefaults.standard.register(defaults: [LiveActivityManager.enabledKey: true])
+        }
+    }
 
         var body: some Scene {
                 WindowGroup(content: {
@@ -178,7 +184,6 @@ struct FeatherApp: App {
                                                 CheckUpdatesManager.shared.checkIfNeeded()
                                         }
                                         .overlay(StatusBarOverlay())
-                                        .overlay(PortalTopView())
                                         .overlay(alignment: .bottom) {
                                             if UserDefaults.standard.bool(forKey: "Feather.continueDownloadInApp") {
                                                 DownloadOnAppBackgroundView()
